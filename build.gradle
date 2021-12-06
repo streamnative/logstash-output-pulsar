@@ -46,10 +46,10 @@ shadowJar {
 }
 
 dependencies {
-    compile 'org.apache.logging.log4j:log4j-core:2.13.3'
-    compile 'org.apache.logging.log4j:log4j-api:2.13.3'
-    compile 'org.apache.pulsar:pulsar-client:2.7.1'
-    implementation files(LOGSTASH_CORE_PATH + '../logstash-core/build/libs/logstash-core-7.11.3.jar')
+    implementation 'org.apache.logging.log4j:log4j-core:2.13.3'
+    implementation 'org.apache.logging.log4j:log4j-api:2.13.3'
+    implementation 'org.apache.pulsar:pulsar-client:2.7.1'
+    implementation files(LOGSTASH_CORE_PATH + '/../logstash-core/build/libs/logstash-core-7.15.2.jar')
 
 
     testImplementation 'junit:junit:4.12'
