@@ -1,14 +1,26 @@
 package org.apache.pulsar.logstash.outputs;
 
-import co.elastic.logstash.api.*;
+import co.elastic.logstash.api.Codec;
+import co.elastic.logstash.api.Configuration;
+import co.elastic.logstash.api.Context;
+import co.elastic.logstash.api.Event;
+import co.elastic.logstash.api.LogstashPlugin;
+import co.elastic.logstash.api.Output;
+import co.elastic.logstash.api.PluginConfigSpec;
+import co.elastic.logstash.api.PluginHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.pulsar.client.api.*;
+import org.apache.pulsar.client.api.CompressionType;
+import org.apache.pulsar.client.api.ProducerBuilder;
+import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 
 import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 @LogstashPlugin(name = "pulsar")
@@ -41,54 +53,46 @@ public class Pulsar implements Output {
 
     private final CountDownLatch done = new CountDownLatch(1);
 
-    // producer_name
-//    private String producerName;
-//    private static final PluginConfigSpec<String> CONFIG_PRODUCER_NAME =
-//            PluginConfigSpec.requiredStringSetting("producer_name");
-    private String id;
+    private final String producerName;
+    private static final PluginConfigSpec<String> CONFIG_PRODUCER_NAME =
+            PluginConfigSpec.requiredStringSetting("producer_name");
+    private final String id;
     private volatile boolean stopped;
-    private OutputStream outputStream;
-    private PulsarClient client;
-    private Map<String,org.apache.pulsar.client.api.Producer<byte[]>> producerMap;
-    private String serviceUrl;
+    private final PulsarClient client;
+    private final Map<String,org.apache.pulsar.client.api.Producer<byte[]>> producerMap;
+    private final String serviceUrl;
     // producer config list
     // can only use java codec
-    private Codec codec;
+    private final Codec codec;
     // topic
-    private String topic;
+    private final String topic;
     // compressionType LZ4,ZLIB,ZSTD,SNAPPY
-    private String compressionType;
+    private final String compressionType;
     // blockIfQueueFull true/false
-    private boolean blockIfQueueFull;
+    private final boolean blockIfQueueFull;
     // enableBatching true/false
-    private boolean enableBatching;
+    private final boolean enableBatching;
 
     // TODO: batchingMaxPublishDelay milliseconds
 
     // TODO: sendTimeoutMs milliseconds 30000
-    private PrintStream printer;
 
     // all plugins must provide a constructor that accepts id, Configuration, and Context
     public Pulsar(final String id, final Configuration configuration, final Context context) {
-        this(id, configuration, context, System.out);
-    }
-
-    Pulsar(final String id, final Configuration config, final Context context, OutputStream targetStream) {
         // constructors should validate configuration options
         this.id = id;
-        this.outputStream = targetStream;
-        codec = config.get(CONFIG_CODEC);
+        codec = configuration.get(CONFIG_CODEC);
         if (codec == null) {
             throw new IllegalStateException("Unable to obtain codec");
         }
 
-        serviceUrl = config.get(CONFIG_SERVICE_URL);
+        serviceUrl = configuration.get(CONFIG_SERVICE_URL);
 
-        topic = config.get(CONFIG_TOPIC);
-//        producerName = config.get(CONFIG_PRODUCER_NAME);
-        enableBatching = config.get(CONFIG_ENABLE_BATCHING);
-        blockIfQueueFull = config.get(CONFIG_BLOCK_IF_QUEUE_FULL);
-        compressionType = config.get(CONFIG_COMPRESSION_TYPE);
+        topic = configuration.get(CONFIG_TOPIC);
+        producerName = configuration.get(CONFIG_PRODUCER_NAME);
+        enableBatching = configuration.get(CONFIG_ENABLE_BATCHING);
+        blockIfQueueFull = configuration.get(CONFIG_BLOCK_IF_QUEUE_FULL);
+        compressionType = configuration.get(CONFIG_COMPRESSION_TYPE);
 
         try {
 
@@ -128,13 +132,15 @@ public class Pulsar implements Output {
             return producerMap.get(topic);
         }else{
             // Create a producer
-            org.apache.pulsar.client.api.Producer<byte[]> producer = client.newProducer()
+            ProducerBuilder<byte[]> producerBuilder = client.newProducer()
                     .topic(topic)
                     .enableBatching(enableBatching)
-//                    .producerName(producerName)
                     .blockIfQueueFull(blockIfQueueFull)
-                    .compressionType(getSubscriptionType())
-                    .create();
+                    .compressionType(getSubscriptionType());
+            if (producerName != null) {
+                producerBuilder.producerName(producerName);
+            }
+            org.apache.pulsar.client.api.Producer<byte[]> producer = producerBuilder.create();
             logger.info("Create producer {} to topic {} , blockIfQueueFull is {},compressionType is {}", producer.getProducerName(),topic, blockIfQueueFull?"true":"false",compressionType);
             producerMap.put(topic,producer);
             return producer;
@@ -195,7 +201,7 @@ public class Pulsar implements Output {
                 CONFIG_CODEC,
                 CONFIG_SERVICE_URL,
                 CONFIG_TOPIC,
-//                CONFIG_PRODUCER_NAME,
+                CONFIG_PRODUCER_NAME,
                 CONFIG_COMPRESSION_TYPE,
                 CONFIG_ENABLE_BATCHING,
                 CONFIG_BLOCK_IF_QUEUE_FULL
