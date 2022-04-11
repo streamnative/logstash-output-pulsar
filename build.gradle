@@ -49,7 +49,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
     implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
     implementation 'org.apache.pulsar:pulsar-client:2.10.0'
-    implementation files(LOGSTASH_CORE_PATH + '/../logstash-core/build/libs/logstash-core-7.17.1.jar')
+    implementation files(LOGSTASH_CORE_PATH + '/../logstash-core/build/libs/logstash-core-7.17.2.jar')
 
 
     testImplementation 'junit:junit:4.12'
