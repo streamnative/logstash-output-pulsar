@@ -1,6 +1,13 @@
 package org.apache.pulsar.logstash.outputs;
 
-import co.elastic.logstash.api.*;
+import co.elastic.logstash.api.Codec;
+import co.elastic.logstash.api.Configuration;
+import co.elastic.logstash.api.Context;
+import co.elastic.logstash.api.Event;
+import co.elastic.logstash.api.LogstashPlugin;
+import co.elastic.logstash.api.Output;
+import co.elastic.logstash.api.PluginConfigSpec;
+import co.elastic.logstash.api.PluginHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pulsar.client.api.CompressionType;
