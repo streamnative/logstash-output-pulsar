@@ -74,7 +74,7 @@ public class Pulsar implements Output {
             PluginConfigSpec.booleanSetting("allow_tls_insecure_connection",false);
 
     private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_TLS_HOSTNAME_VERIFICATION =
-            PluginConfigSpec.booleanSetting("enable_tls_hostname_verification",true);
+            PluginConfigSpec.booleanSetting("enable_tls_hostname_verification",false);
 
     private static final PluginConfigSpec<String> CONFIG_TLS_TRUST_STORE_PATH =
             PluginConfigSpec.stringSetting("tls_trust_store_path","");
@@ -142,36 +142,9 @@ public class Pulsar implements Output {
         try {
             if (enableTls) {
                 // pulsar TLS
-                Boolean allowTlsInsecureConnection = configuration.get(CONFIG_ALLOW_TLS_INSECURE_CONNECTION);
-                Boolean enableTlsHostnameVerification = configuration.get(CONFIG_ENABLE_TLS_HOSTNAME_VERIFICATION);
-                String tlsTrustStorePath = configuration.get(CONFIG_TLS_TRUST_STORE_PATH);
-                Map<String, String> authMap = new HashMap<>();
-                authMap.put(AuthenticationKeyStoreTls.KEYSTORE_TYPE, "JKS");
-                authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PATH, tlsTrustStorePath);
-                authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PW, configuration.get(CONFIG_TLS_TRUST_STORE_PASSWORD));
-
-                Set<String> cipherSet = new HashSet<>();
-                Optional.ofNullable(configuration.get(CONFIG_CIPHERS)).ifPresent(
-                        cipherList -> cipherList.forEach(cipher -> cipherSet.add(String.valueOf(cipher))));
-
-                Set<String> protocolSet = new HashSet<>();
-                Optional.ofNullable(configuration.get(CONFIG_PROTOCOLS)).ifPresent(
-                        protocolList -> protocolList.forEach(protocol -> protocolSet.add(String.valueOf(protocol))));
-
-                client = PulsarClient.builder()
-                        .serviceUrl(serviceUrl)
-                        .tlsCiphers(cipherSet)
-                        .tlsProtocols(protocolSet)
-                        .allowTlsInsecureConnection(allowTlsInsecureConnection)
-                        .enableTlsHostnameVerification(enableTlsHostnameVerification)
-                        .tlsTrustStorePath(tlsTrustStorePath)
-                        .tlsTrustStorePassword(configuration.get(CONFIG_TLS_TRUST_STORE_PASSWORD))
-                        .authentication(configuration.get(CONFIG_AUTH_PLUGIN_CLASS_NAME),authMap)
-                        .build();
+                client = buildTlsPulsar(configuration);
             } else {
-                client = PulsarClient.builder()
-                        .serviceUrl(serviceUrl)
-                        .build();
+                client = buildNotTlsPulsar();
             }
 
             producerMap = new HashMap<>();
@@ -179,6 +152,41 @@ public class Pulsar implements Output {
             logger.error("fail to create pulsar client", e);
             throw new IllegalStateException("Unable to create pulsar client");
         }
+    }
+
+    private PulsarClient buildNotTlsPulsar() throws PulsarClientException {
+        return PulsarClient.builder()
+                .serviceUrl(serviceUrl)
+                .build();
+    }
+
+    private PulsarClient buildTlsPulsar(Configuration configuration) throws PulsarClientException {
+        Boolean allowTlsInsecureConnection = configuration.get(CONFIG_ALLOW_TLS_INSECURE_CONNECTION);
+        Boolean enableTlsHostnameVerification = configuration.get(CONFIG_ENABLE_TLS_HOSTNAME_VERIFICATION);
+        String tlsTrustStorePath = configuration.get(CONFIG_TLS_TRUST_STORE_PATH);
+        Map<String, String> authMap = new HashMap<>();
+        authMap.put(AuthenticationKeyStoreTls.KEYSTORE_TYPE, "JKS");
+        authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PATH, tlsTrustStorePath);
+        authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PW, configuration.get(CONFIG_TLS_TRUST_STORE_PASSWORD));
+
+        Set<String> cipherSet = new HashSet<>();
+        Optional.ofNullable(configuration.get(CONFIG_CIPHERS)).ifPresent(
+                cipherList -> cipherList.forEach(cipher -> cipherSet.add(String.valueOf(cipher))));
+
+        Set<String> protocolSet = new HashSet<>();
+        Optional.ofNullable(configuration.get(CONFIG_PROTOCOLS)).ifPresent(
+                protocolList -> protocolList.forEach(protocol -> protocolSet.add(String.valueOf(protocol))));
+
+        return PulsarClient.builder()
+                .serviceUrl(serviceUrl)
+                .tlsCiphers(cipherSet)
+                .tlsProtocols(protocolSet)
+                .allowTlsInsecureConnection(allowTlsInsecureConnection)
+                .enableTlsHostnameVerification(enableTlsHostnameVerification)
+                .tlsTrustStorePath(tlsTrustStorePath)
+                .tlsTrustStorePassword(configuration.get(CONFIG_TLS_TRUST_STORE_PASSWORD))
+                .authentication(configuration.get(CONFIG_AUTH_PLUGIN_CLASS_NAME),authMap)
+                .build();
     }
 
     @Override
@@ -279,7 +287,17 @@ public class Pulsar implements Output {
                 CONFIG_PRODUCER_NAME,
                 CONFIG_COMPRESSION_TYPE,
                 CONFIG_ENABLE_BATCHING,
-                CONFIG_BLOCK_IF_QUEUE_FULL
+                CONFIG_BLOCK_IF_QUEUE_FULL,
+
+                // Pulsar TLS Config
+                CONFIG_ENABLE_TLS,
+                CONFIG_TLS_TRUST_STORE_PATH,
+                CONFIG_TLS_TRUST_STORE_PASSWORD,
+                CONFIG_PROTOCOLS,
+                CONFIG_ALLOW_TLS_INSECURE_CONNECTION,
+                CONFIG_AUTH_PLUGIN_CLASS_NAME,
+                CONFIG_ENABLE_TLS_HOSTNAME_VERIFICATION,
+                CONFIG_CIPHERS
         ));
 
     }
