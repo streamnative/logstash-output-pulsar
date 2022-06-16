@@ -19,7 +19,6 @@ import org.apache.pulsar.client.impl.auth.AuthenticationKeyStoreTls;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -52,15 +51,15 @@ public class Pulsar implements Output {
             PluginConfigSpec.stringSetting("compression_type", COMPRESSION_TYPE_NONE);
 
     private static final PluginConfigSpec<Boolean> CONFIG_BLOCK_IF_QUEUE_FULL =
-            PluginConfigSpec.booleanSetting("block_if_queue_full",true);
+            PluginConfigSpec.booleanSetting("block_if_queue_full", true);
 
     private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_BATCHING =
-            PluginConfigSpec.booleanSetting("enable_batching",true);
+            PluginConfigSpec.booleanSetting("enable_batching", true);
 
     // TLS Config
     private static final String authPluginClassName = "org.apache.pulsar.client.impl.auth.AuthenticationKeyStoreTls";
-    private static final List<String> protocols = Arrays.asList("TLSv1.2");
-    private static final List<String> ciphers = Arrays.asList(
+    private static final List<Object> protocols = Arrays.asList("TLSv1.2");
+    private static final List<Object> ciphers = Arrays.asList(
             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
@@ -68,28 +67,34 @@ public class Pulsar implements Output {
     );
 
     private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_TLS =
-            PluginConfigSpec.booleanSetting("enable_tls",false);
+            PluginConfigSpec.booleanSetting("enable_tls", false);
 
     private static final PluginConfigSpec<Boolean> CONFIG_ALLOW_TLS_INSECURE_CONNECTION =
-            PluginConfigSpec.booleanSetting("allow_tls_insecure_connection",false);
+            PluginConfigSpec.booleanSetting("allow_tls_insecure_connection", false);
 
     private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_TLS_HOSTNAME_VERIFICATION =
-            PluginConfigSpec.booleanSetting("enable_tls_hostname_verification",false);
+            PluginConfigSpec.booleanSetting("enable_tls_hostname_verification", false);
 
     private static final PluginConfigSpec<String> CONFIG_TLS_TRUST_STORE_PATH =
-            PluginConfigSpec.stringSetting("tls_trust_store_path","");
+            PluginConfigSpec.stringSetting("tls_trust_store_path", "");
 
     private static final PluginConfigSpec<String> CONFIG_TLS_TRUST_STORE_PASSWORD =
-            PluginConfigSpec.stringSetting("tls_trust_store_password","");
+            PluginConfigSpec.stringSetting("tls_trust_store_password", "");
+
+    private static final PluginConfigSpec<String> CONFIG_TLS_KEY_STORE_PATH =
+            PluginConfigSpec.stringSetting("tls_key_store_path", "");
+
+    private static final PluginConfigSpec<String> CONFIG_TLS_KEY_STORE_PASSWORD =
+            PluginConfigSpec.stringSetting("tls_key_store_password", "");
 
     private static final PluginConfigSpec<String> CONFIG_AUTH_PLUGIN_CLASS_NAME =
-            PluginConfigSpec.stringSetting("auth_plugin_class_name",authPluginClassName);
+            PluginConfigSpec.stringSetting("auth_plugin_class_name", authPluginClassName);
 
     private static final PluginConfigSpec<List<Object>> CONFIG_CIPHERS =
-            PluginConfigSpec.arraySetting("ciphers", Collections.singletonList(ciphers), false, false);
+            PluginConfigSpec.arraySetting("ciphers", ciphers, false, false);
 
     private static final PluginConfigSpec<List<Object>> CONFIG_PROTOCOLS =
-            PluginConfigSpec.arraySetting("protocols", Collections.singletonList(protocols), false, false);
+            PluginConfigSpec.arraySetting("protocols", protocols, false, false);
 
 
     private final CountDownLatch done = new CountDownLatch(1);
@@ -100,7 +105,7 @@ public class Pulsar implements Output {
     private final String id;
     private volatile boolean stopped;
     private final PulsarClient client;
-    private final Map<String,org.apache.pulsar.client.api.Producer<byte[]>> producerMap;
+    private final Map<String, org.apache.pulsar.client.api.Producer<byte[]>> producerMap;
     private final String serviceUrl;
     // producer config list
     // can only use java codec
@@ -142,9 +147,9 @@ public class Pulsar implements Output {
         try {
             if (enableTls) {
                 // pulsar TLS
-                client = buildTlsPulsar(configuration);
+                client = buildTlsPulsarClient(configuration);
             } else {
-                client = buildNotTlsPulsar();
+                client = buildNotTlsPulsarClient();
             }
 
             producerMap = new HashMap<>();
@@ -154,20 +159,25 @@ public class Pulsar implements Output {
         }
     }
 
-    private PulsarClient buildNotTlsPulsar() throws PulsarClientException {
+    private PulsarClient buildNotTlsPulsarClient() throws PulsarClientException {
         return PulsarClient.builder()
                 .serviceUrl(serviceUrl)
                 .build();
     }
 
-    private PulsarClient buildTlsPulsar(Configuration configuration) throws PulsarClientException {
+    private PulsarClient buildTlsPulsarClient(Configuration configuration) throws PulsarClientException {
         Boolean allowTlsInsecureConnection = configuration.get(CONFIG_ALLOW_TLS_INSECURE_CONNECTION);
         Boolean enableTlsHostnameVerification = configuration.get(CONFIG_ENABLE_TLS_HOSTNAME_VERIFICATION);
         String tlsTrustStorePath = configuration.get(CONFIG_TLS_TRUST_STORE_PATH);
+        String tlsTrustStorePassword = configuration.get(CONFIG_TLS_TRUST_STORE_PASSWORD);
+        String tlsKeyStorePath = configuration.get(CONFIG_TLS_KEY_STORE_PATH);
+        String tlsKeyStorePassword = configuration.get(CONFIG_TLS_KEY_STORE_PASSWORD);
+        String pluginClassName = configuration.get(CONFIG_AUTH_PLUGIN_CLASS_NAME);
+
         Map<String, String> authMap = new HashMap<>();
         authMap.put(AuthenticationKeyStoreTls.KEYSTORE_TYPE, "JKS");
-        authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PATH, tlsTrustStorePath);
-        authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PW, configuration.get(CONFIG_TLS_TRUST_STORE_PASSWORD));
+        authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PATH, tlsKeyStorePath);
+        authMap.put(AuthenticationKeyStoreTls.KEYSTORE_PW, tlsKeyStorePassword);
 
         Set<String> cipherSet = new HashSet<>();
         Optional.ofNullable(configuration.get(CONFIG_CIPHERS)).ifPresent(
@@ -176,7 +186,6 @@ public class Pulsar implements Output {
         Set<String> protocolSet = new HashSet<>();
         Optional.ofNullable(configuration.get(CONFIG_PROTOCOLS)).ifPresent(
                 protocolList -> protocolList.forEach(protocol -> protocolSet.add(String.valueOf(protocol))));
-
         return PulsarClient.builder()
                 .serviceUrl(serviceUrl)
                 .tlsCiphers(cipherSet)
@@ -184,8 +193,9 @@ public class Pulsar implements Output {
                 .allowTlsInsecureConnection(allowTlsInsecureConnection)
                 .enableTlsHostnameVerification(enableTlsHostnameVerification)
                 .tlsTrustStorePath(tlsTrustStorePath)
-                .tlsTrustStorePassword(configuration.get(CONFIG_TLS_TRUST_STORE_PASSWORD))
-                .authentication(configuration.get(CONFIG_AUTH_PLUGIN_CLASS_NAME),authMap)
+                .tlsTrustStorePassword(tlsTrustStorePassword)
+                .useKeyStoreTls(true)
+                .authentication(pluginClassName, authMap)
                 .build();
     }
 
@@ -211,9 +221,9 @@ public class Pulsar implements Output {
 
     private org.apache.pulsar.client.api.Producer<byte[]> getProducer(String topic) throws PulsarClientException {
 
-        if(producerMap.containsKey(topic)){
+        if (producerMap.containsKey(topic)) {
             return producerMap.get(topic);
-        }else{
+        } else {
             // Create a producer
             ProducerBuilder<byte[]> producerBuilder = client.newProducer()
                     .topic(topic)
@@ -224,8 +234,8 @@ public class Pulsar implements Output {
                 producerBuilder.producerName(producerName);
             }
             org.apache.pulsar.client.api.Producer<byte[]> producer = producerBuilder.create();
-            logger.info("Create producer {} to topic {} , blockIfQueueFull is {},compressionType is {}", producer.getProducerName(),topic, blockIfQueueFull?"true":"false",compressionType);
-            producerMap.put(topic,producer);
+            logger.info("Create producer {} to topic {} , blockIfQueueFull is {},compressionType is {}", producer.getProducerName(), topic, blockIfQueueFull ? "true" : "false", compressionType);
+            producerMap.put(topic, producer);
             return producer;
         }
     }
@@ -253,9 +263,9 @@ public class Pulsar implements Output {
 
     private void closePulsarProducer() {
         try {
-            for(org.apache.pulsar.client.api.Producer<byte[]> producer: producerMap.values()){
+            for (org.apache.pulsar.client.api.Producer<byte[]> producer : producerMap.values()) {
                 producer.close();
-                logger.info("close producer {} for topic {}",producer.getProducerName(),producer.getTopic());
+                logger.info("close producer {} for topic {}", producer.getProducerName(), producer.getTopic());
             }
             client.close();
             logger.info("close pulsar client");
@@ -293,6 +303,8 @@ public class Pulsar implements Output {
                 CONFIG_ENABLE_TLS,
                 CONFIG_TLS_TRUST_STORE_PATH,
                 CONFIG_TLS_TRUST_STORE_PASSWORD,
+                CONFIG_TLS_KEY_STORE_PATH,
+                CONFIG_TLS_KEY_STORE_PASSWORD,
                 CONFIG_PROTOCOLS,
                 CONFIG_ALLOW_TLS_INSECURE_CONNECTION,
                 CONFIG_AUTH_PLUGIN_CLASS_NAME,
