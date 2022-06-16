@@ -50,5 +50,5 @@ https://github.com/streamnative/logstash-output-pulsar/releases
 2. Install this plugin using logstash preoffline command.
 
 ```
-bin/logstash-plugin install file://{PATH_TO}/logstash-output-pulsar-2.9.0.1.zip
+bin/logstash-plugin install file://{PATH_TO}/logstash-output-pulsar-2.10.0.0.zip
 ```
