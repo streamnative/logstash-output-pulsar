@@ -122,6 +122,7 @@ public class Pulsar implements Output {
     //TLS
     private final boolean enableTls;
 
+    //Token
     private final boolean enableToken;
 
     // TODO: batchingMaxPublishDelay milliseconds
@@ -149,7 +150,10 @@ public class Pulsar implements Output {
         enableToken = configuration.get(CONFIG_ENABLE_TOKEN);
 
         try {
-            if (enableTls) {
+            if(enableTls && enableToken){
+                logger.error("Unable to Tls and Token authentication at the same time");
+                throw new IllegalStateException("Unable to Tls and Token authentication at the same time，enable_tls => true && enable_token => true" );
+            } else if (enableTls) {
                 // pulsar TLS
                 client = buildTlsPulsar(configuration);
             } else if (enableToken) {
@@ -158,10 +162,9 @@ public class Pulsar implements Output {
             } else {
                 client = buildNotTlsPulsar();
             }
-
             producerMap = new HashMap<>();
         } catch (PulsarClientException e) {
-            logger.error("fail to create pulsar client", e);
+            logger.error("Fail to create pulsar client", e);
             throw new IllegalStateException("Unable to create pulsar client");
         }
     }

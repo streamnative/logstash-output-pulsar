@@ -47,7 +47,7 @@ pulsar with token
 ```
 output {
   pulsar{
-    serviceUrl => "pulsar://10.2.0.7:6650"
+    serviceUrl => "pulsar://localhost:6650"
     topic => "persistent://public/default/%{topic_name}"
     producer_name => "%{producer_name}"
     enable_batching => true
