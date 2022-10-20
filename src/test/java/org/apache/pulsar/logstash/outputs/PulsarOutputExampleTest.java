@@ -18,7 +18,7 @@ public class PulsarOutputExampleTest {
     // broker
     String serviceUrl = "pulsar://127.0.0.1:6650";
     // topic
-    String topic = "test";
+    String topic = "public/default/logstash";
 
     String token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTY5NDIzNjAwOX0.eFlDpXiiPlC4jeElru0z7NvjwHbmv5eF8orKlr96hSE";
 
@@ -27,13 +27,20 @@ public class PulsarOutputExampleTest {
     // 初始化配置信息
     @Before
     public void init(){
+
+
         configValues.put("serviceUrl", serviceUrl);
+        configValues.put("producer_name", "jun_test");
         configValues.put("topic", topic);
         configValues.put("enable_batching", true);
         configValues.put("enable_token", true);
         configValues.put("auth_plugin_class_name", "org.apache.pulsar.client.impl.auth.AuthenticationToken");
         configValues.put("auth_plugin_params_String", "token:"+token);
-        configValues.put(Pulsar.CONFIG_CODEC.name(), "java-line");
+        String delimiter = "/";
+        Map<String, Object> codecMap = new HashMap<>();
+        codecMap.put("delimiter", delimiter);
+        Configuration codecConf = new ConfigurationImpl(codecMap);
+        configValues.put(Pulsar.CONFIG_CODEC.name(), new Line(codecConf,null));
     }
 
     @Test
@@ -46,12 +53,12 @@ public class PulsarOutputExampleTest {
         Collection<Event> events = new ArrayList<>();
         for (int k = 0; k < eventCount; k++) {
             Event e = new org.logstash.Event();
-            e.setField(sourceField, "message " + k);
+            e.setField(sourceField, "message :  hello jun test " + k);
             events.add(e);
         }
 
-        System.out.println(events);
-        //output.output(events);
+        System.out.println("event : " + events);
+        output.output(events);
     }
 
 }
