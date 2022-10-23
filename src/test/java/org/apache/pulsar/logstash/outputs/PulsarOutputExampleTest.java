@@ -34,7 +34,8 @@ public class PulsarOutputExampleTest {
         Map<String, Object> codecMap = new HashMap<>();
         codecMap.put("delimiter", delimiter);
         Configuration codecConf = new ConfigurationImpl(codecMap);
-        configValues.put("codec", new Line(codecConf, null));}
+        configValues.put("codec", new Line(codecConf, null));
+    }
 
     @Test
     @Ignore()
