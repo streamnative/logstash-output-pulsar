@@ -51,7 +51,8 @@ dependencies {
     implementation 'org.apache.pulsar:pulsar-client:2.10.2'
     implementation files(LOGSTASH_CORE_PATH + '/../logstash-core/build/libs/logstash-core-7.17.4.jar')
 
-
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.12.3'
+    testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.12.3'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.jruby:jruby-complete:9.1.14.0'
 }

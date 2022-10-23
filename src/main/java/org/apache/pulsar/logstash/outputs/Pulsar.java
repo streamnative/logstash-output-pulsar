@@ -91,6 +91,11 @@ public class Pulsar implements Output {
     private static final PluginConfigSpec<List<Object>> CONFIG_PROTOCOLS =
             PluginConfigSpec.arraySetting("protocols", Collections.singletonList(protocols), false, false);
 
+    private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_TOKEN =
+            PluginConfigSpec.booleanSetting("enable_token",false);
+
+    private static final PluginConfigSpec<String> CONFIG_AUTH_PLUGIN_PARAMS_STRING =
+            PluginConfigSpec.stringSetting("auth_plugin_params_String","");
 
     private final CountDownLatch done = new CountDownLatch(1);
 
@@ -117,6 +122,9 @@ public class Pulsar implements Output {
     //TLS
     private final boolean enableTls;
 
+    //Token
+    private final boolean enableToken;
+
     // TODO: batchingMaxPublishDelay milliseconds
 
     // TODO: sendTimeoutMs milliseconds 30000
@@ -139,17 +147,24 @@ public class Pulsar implements Output {
         compressionType = configuration.get(CONFIG_COMPRESSION_TYPE);
 
         enableTls = configuration.get(CONFIG_ENABLE_TLS);
+        enableToken = configuration.get(CONFIG_ENABLE_TOKEN);
+
         try {
-            if (enableTls) {
+            if(enableTls && enableToken){
+                logger.error("Unable to Tls and Token authentication at the same time");
+                throw new IllegalStateException("Unable to Tls and Token authentication at the same time，enable_tls => true && enable_token => true" );
+            } else if (enableTls) {
                 // pulsar TLS
                 client = buildTlsPulsar(configuration);
+            } else if (enableToken) {
+                // pulsar Token
+                client = buildTokenPulsar(configuration);
             } else {
                 client = buildNotTlsPulsar();
             }
-
             producerMap = new HashMap<>();
         } catch (PulsarClientException e) {
-            logger.error("fail to create pulsar client", e);
+            logger.error("Fail to create pulsar client", e);
             throw new IllegalStateException("Unable to create pulsar client");
         }
     }
@@ -157,6 +172,13 @@ public class Pulsar implements Output {
     private PulsarClient buildNotTlsPulsar() throws PulsarClientException {
         return PulsarClient.builder()
                 .serviceUrl(serviceUrl)
+                .build();
+    }
+
+    private PulsarClient buildTokenPulsar(Configuration configuration) throws PulsarClientException {
+        return PulsarClient.builder()
+                .serviceUrl(serviceUrl)
+                .authentication(configuration.get(CONFIG_AUTH_PLUGIN_CLASS_NAME),configuration.get(CONFIG_AUTH_PLUGIN_PARAMS_STRING))
                 .build();
     }
 
@@ -288,6 +310,7 @@ public class Pulsar implements Output {
                 CONFIG_COMPRESSION_TYPE,
                 CONFIG_ENABLE_BATCHING,
                 CONFIG_BLOCK_IF_QUEUE_FULL,
+                CONFIG_AUTH_PLUGIN_CLASS_NAME,
 
                 // Pulsar TLS Config
                 CONFIG_ENABLE_TLS,
@@ -295,9 +318,12 @@ public class Pulsar implements Output {
                 CONFIG_TLS_TRUST_STORE_PASSWORD,
                 CONFIG_PROTOCOLS,
                 CONFIG_ALLOW_TLS_INSECURE_CONNECTION,
-                CONFIG_AUTH_PLUGIN_CLASS_NAME,
                 CONFIG_ENABLE_TLS_HOSTNAME_VERIFICATION,
-                CONFIG_CIPHERS
+                CONFIG_CIPHERS,
+
+                // Pulsar Token Config
+                CONFIG_ENABLE_TOKEN,
+                CONFIG_AUTH_PLUGIN_PARAMS_STRING
         ));
 
     }
@@ -306,6 +332,4 @@ public class Pulsar implements Output {
     public String getId() {
         return this.id;
     }
-
-
 }
