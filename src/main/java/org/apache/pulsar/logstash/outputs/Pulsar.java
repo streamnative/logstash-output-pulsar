@@ -224,7 +224,7 @@ public class Pulsar implements Output {
                 logger.debug("topic is {}, message is {}", eventTopic, s);
                 getProducer(eventTopic).newMessage()
                         .value(s.getBytes())
-                        .send();
+                        .sendAsync();
             } catch (Exception e) {
                 logger.error("fail to send message", e);
             }
