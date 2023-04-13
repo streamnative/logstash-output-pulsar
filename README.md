@@ -58,6 +58,27 @@ output {
 }
 ```
 
+pulsar with kerberos
+
+```
+output {
+  pulsar{
+    serviceUrl => "pulsar://localhost:6650"
+    topic => "persistent://public/default/%{topic_name}"
+    enable_batching => true
+    enable_token => false
+    auth_plugin_class_name => "org.apache.pulsar.client.impl.auth.AuthenticationSasl"
+    enable_kerberos => "true"
+    jaas_path => "/{PATH_TO}/pulsar-jaas.conf"
+    krb5_path => "/{PATH_TO}/krb5.conf"
+    sasl_jaas_client_section_name => "pulsar_consumer"
+    server_type => "broker"				// ** here is the different **
+    producer_name => "%{producer_name}"
+  }
+}
+```
+
+
 
 # Installation
 
