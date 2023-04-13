@@ -97,6 +97,9 @@ public class Pulsar implements Output {
     private static final PluginConfigSpec<String> CONFIG_AUTH_PLUGIN_PARAMS_STRING =
             PluginConfigSpec.stringSetting("auth_plugin_params_String","");
 
+    private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_ASYNC =
+            PluginConfigSpec.booleanSetting("enable_async",false);
+
     private final CountDownLatch done = new CountDownLatch(1);
 
     private final String producerName;
@@ -125,6 +128,9 @@ public class Pulsar implements Output {
     //Token
     private final boolean enableToken;
 
+    // Sends messages async if set, otherwise sync
+    private final boolean enableSync;
+
     // TODO: batchingMaxPublishDelay milliseconds
 
     // TODO: sendTimeoutMs milliseconds 30000
@@ -148,6 +154,7 @@ public class Pulsar implements Output {
 
         enableTls = configuration.get(CONFIG_ENABLE_TLS);
         enableToken = configuration.get(CONFIG_ENABLE_TOKEN);
+        enableAsync = configuration.get(CONFIG_ENABLE_ASYNC);
 
         try {
             if(enableTls && enableToken){
@@ -222,12 +229,22 @@ public class Pulsar implements Output {
                 codec.encode(event, baos);
                 String s = baos.toString();
                 logger.debug("topic is {}, message is {}", eventTopic, s);
-                getProducer(eventTopic).newMessage()
-                        .value(s.getBytes())
-                        .sendAsync();
+                send(eventTopic)
             } catch (Exception e) {
                 logger.error("fail to send message", e);
             }
+        }
+    }
+
+    private void send(String topic){
+        if (enable_async){
+            getProducer(topic).newMessage()
+                .value(s.getBytes())
+                .sendAsync();
+        }else {
+            getProducer(topic).newMessage()
+                .value(s.getBytes())
+                .send();
         }
     }
 
