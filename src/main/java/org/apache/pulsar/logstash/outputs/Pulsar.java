@@ -10,11 +10,9 @@ import co.elastic.logstash.api.PluginConfigSpec;
 import co.elastic.logstash.api.PluginHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.pulsar.client.api.CompressionType;
-import org.apache.pulsar.client.api.ProducerBuilder;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.auth.AuthenticationKeyStoreTls;
+import org.apache.pulsar.shade.com.google.common.collect.Maps;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
@@ -28,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+
 
 @LogstashPlugin(name = "pulsar")
 public class Pulsar implements Output {
@@ -82,6 +81,19 @@ public class Pulsar implements Output {
     private static final PluginConfigSpec<String> CONFIG_TLS_TRUST_STORE_PASSWORD =
             PluginConfigSpec.stringSetting("tls_trust_store_password","");
 
+    private static final PluginConfigSpec<String> CONFIG_JAAS_PATH =
+            PluginConfigSpec.stringSetting("jaas_path","");
+
+    private static final PluginConfigSpec<String> CONFIG_KRB5_PATH =
+            PluginConfigSpec.stringSetting("krb5_path","");
+
+    private static final PluginConfigSpec<String> CONFIG_SASL_JAAS_CLIENT_SECTION_NAME =
+            PluginConfigSpec.stringSetting("sasl_jaas_client_section_name","");
+
+    private static final PluginConfigSpec<String> CONFIG_SERVER_TYPE =
+            PluginConfigSpec.stringSetting("server_type","");
+
+
     private static final PluginConfigSpec<String> CONFIG_AUTH_PLUGIN_CLASS_NAME =
             PluginConfigSpec.stringSetting("auth_plugin_class_name",authPluginClassName);
 
@@ -93,6 +105,9 @@ public class Pulsar implements Output {
 
     private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_TOKEN =
             PluginConfigSpec.booleanSetting("enable_token",false);
+
+    private static final PluginConfigSpec<Boolean> CONFIG_ENABLE_KERBEROS =
+            PluginConfigSpec.booleanSetting("enable_kerberos",false);
 
     private static final PluginConfigSpec<String> CONFIG_AUTH_PLUGIN_PARAMS_STRING =
             PluginConfigSpec.stringSetting("auth_plugin_params_String","");
@@ -125,6 +140,9 @@ public class Pulsar implements Output {
     //Token
     private final boolean enableToken;
 
+    // Kerberos
+    private final boolean enableKerberos;
+
     // TODO: batchingMaxPublishDelay milliseconds
 
     // TODO: sendTimeoutMs milliseconds 30000
@@ -148,6 +166,7 @@ public class Pulsar implements Output {
 
         enableTls = configuration.get(CONFIG_ENABLE_TLS);
         enableToken = configuration.get(CONFIG_ENABLE_TOKEN);
+        enableKerberos = configuration.get(CONFIG_ENABLE_KERBEROS);
 
         try {
             if(enableTls && enableToken){
@@ -159,6 +178,9 @@ public class Pulsar implements Output {
             } else if (enableToken) {
                 // pulsar Token
                 client = buildTokenPulsar(configuration);
+            } else if (enableKerberos) {
+                // pulsar Kerberos
+                client = buildKerberosPulsar(configuration);
             } else {
                 client = buildNotTlsPulsar();
             }
@@ -181,6 +203,26 @@ public class Pulsar implements Output {
                 .authentication(configuration.get(CONFIG_AUTH_PLUGIN_CLASS_NAME),configuration.get(CONFIG_AUTH_PLUGIN_PARAMS_STRING))
                 .build();
     }
+
+    private PulsarClient buildKerberosPulsar(Configuration configuration) throws PulsarClientException {
+        logger.info("Use buildKerberosPulsar get PulsarClient!");
+
+        System.setProperty("java.security.auth.login.config", configuration.get(CONFIG_JAAS_PATH));
+        System.setProperty("java.security.krb5.conf", configuration.get(CONFIG_KRB5_PATH));
+
+        Map<String, String> authParams = Maps.newHashMap();
+        authParams.put("saslJaasClientSectionName", configuration.get(CONFIG_SASL_JAAS_CLIENT_SECTION_NAME));
+        authParams.put("serverType", configuration.get(CONFIG_SERVER_TYPE));        // ** here is the different **
+
+        Authentication saslAuth = AuthenticationFactory
+                .create(configuration.get(CONFIG_AUTH_PLUGIN_CLASS_NAME), authParams);
+
+        return PulsarClient.builder()
+                .serviceUrl(serviceUrl)
+                .authentication(saslAuth)
+                .build();
+    }
+
 
     private PulsarClient buildTlsPulsar(Configuration configuration) throws PulsarClientException {
         Boolean allowTlsInsecureConnection = configuration.get(CONFIG_ALLOW_TLS_INSECURE_CONNECTION);
@@ -323,7 +365,14 @@ public class Pulsar implements Output {
 
                 // Pulsar Token Config
                 CONFIG_ENABLE_TOKEN,
-                CONFIG_AUTH_PLUGIN_PARAMS_STRING
+                CONFIG_AUTH_PLUGIN_PARAMS_STRING,
+
+                // Pulsar Kerberos Config
+                CONFIG_SASL_JAAS_CLIENT_SECTION_NAME,
+                CONFIG_ENABLE_KERBEROS,
+                CONFIG_KRB5_PATH,
+                CONFIG_JAAS_PATH,
+                CONFIG_SERVER_TYPE
         ));
 
     }
