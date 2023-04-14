@@ -1,8 +1,9 @@
 import java.nio.file.Files
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
+def LOGSTASH_CORE_PATH="D:\\Program Files\\logstash\\"
 apply plugin: 'java'
-apply from: LOGSTASH_CORE_PATH + "/../rubyUtils.gradle"
+apply from: LOGSTASH_CORE_PATH + "rubyUtils.gradle"
 
 // ===========================================================================
 // plugin info
@@ -48,18 +49,21 @@ shadowJar {
 dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
     implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
-    implementation 'org.apache.pulsar:pulsar-client:2.10.2'
-    implementation files(LOGSTASH_CORE_PATH + '/../logstash-core/build/libs/logstash-core-7.17.4.jar')
+    implementation 'org.apache.pulsar:pulsar-client:2.10.3'
+    implementation 'org.apache.pulsar:pulsar-client-auth-sasl:2.10.3'
 
     testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.12.3'
     testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.12.3'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.jruby:jruby-complete:9.1.14.0'
+
+    implementation files(LOGSTASH_CORE_PATH + "logstash-core\\build\\libs\\jars\\logstash-core.jar")
 }
 
 clean {
     delete "${projectDir}/Gemfile"
     delete "${projectDir}/" + pluginInfo.pluginFullName() + ".gemspec"
+    delete "${projectDir}/" + "" + ".gemspec"
     delete "${projectDir}/lib/"
     delete "${projectDir}/vendor/"
     new FileNameFinder().getFileNames(projectDir.toString(), pluginInfo.pluginFullName() + "-?.?.?.gem").each { filename ->
