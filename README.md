@@ -31,7 +31,7 @@ This plugin supports these configuration options.
 | ciphers                           |                              array, ciphers list                              |         No |
 | enable_token                      |                boolean, one of [true, false]. default is false                |         No |
 | auth_plugin_params_String         |                                    string                                     |         No |
-| enable_async                      |                boolean, one of [true, false]. default is false                |         No |
+| enableAsync                      |                boolean, one of [true, false]. default is false                |         No |
 
 
 ## Sync vs Async
