@@ -31,6 +31,15 @@ This plugin supports these configuration options.
 | ciphers                           |                              array, ciphers list                              |         No |
 | enable_token                      |                boolean, one of [true, false]. default is false                |         No |
 | auth_plugin_params_String         |                                    string                                     |         No |
+| enable_async                      |                boolean, one of [true, false]. default is false                |         No |
+
+
+## Sync vs Async
+
+Sync is slower because it requires verification that a message is received. Sync supports exactly/effectively once messaging. This means there is a big network latency increase here.
+
+Async is faster because it sends messages out and doesn't care if the message was received/processed or not. Async should only be used if you want "at most once" messaging and don't care if messages are lost.
+
 # Example
 pulsar without tls & token 
 ```
