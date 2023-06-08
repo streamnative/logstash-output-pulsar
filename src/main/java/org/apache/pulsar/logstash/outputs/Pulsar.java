@@ -129,7 +129,7 @@ public class Pulsar implements Output {
     private final boolean enableToken;
 
     // Sends messages async if set, otherwise sync
-    private final boolean enableSync;
+    private final boolean enableAsync;
 
     // TODO: batchingMaxPublishDelay milliseconds
 
