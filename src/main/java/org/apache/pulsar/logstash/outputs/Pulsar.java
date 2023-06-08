@@ -229,14 +229,14 @@ public class Pulsar implements Output {
                 codec.encode(event, baos);
                 String s = baos.toString();
                 logger.debug("topic is {}, message is {}", eventTopic, s);
-                send(eventTopic)
+                send(eventTopic, s);
             } catch (Exception e) {
                 logger.error("fail to send message", e);
             }
         }
     }
 
-    private void send(String topic){
+    private void send(String topic, String s){
         if (enableAsync){
             getProducer(topic).newMessage()
                 .value(s.getBytes())
