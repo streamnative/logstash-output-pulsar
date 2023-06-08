@@ -237,7 +237,7 @@ public class Pulsar implements Output {
     }
 
     private void send(String topic){
-        if (enable_async){
+        if (enableAsync){
             getProducer(topic).newMessage()
                 .value(s.getBytes())
                 .sendAsync();
