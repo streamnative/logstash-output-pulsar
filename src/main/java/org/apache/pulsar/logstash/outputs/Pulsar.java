@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 @LogstashPlugin(name = "pulsar")
@@ -243,7 +244,8 @@ public class Pulsar implements Output {
                     .blockIfQueueFull(blockIfQueueFull)
                     .compressionType(getSubscriptionType());
             if (producerName != null) {
-                producerBuilder.producerName(producerName);
+                String uniqProducerName = producerName + '-' + UUID.randomUUID();
+                producerBuilder.producerName(uniqProducerName);
             }
             org.apache.pulsar.client.api.Producer<byte[]> producer = producerBuilder.create();
             logger.info("Create producer {} to topic {} , blockIfQueueFull is {},compressionType is {}", producer.getProducerName(),topic, blockIfQueueFull?"true":"false",compressionType);
