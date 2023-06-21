@@ -27,9 +27,31 @@ public class PulsarOutputExampleTest {
         configValues.put("producer_name", "jun_test");
         configValues.put("topic", topic);
         configValues.put("enable_batching", true);
-        configValues.put("enable_token", true);
+        configValues.put("enable_token", false);
         configValues.put("auth_plugin_class_name", "org.apache.pulsar.client.impl.auth.AuthenticationToken");
         configValues.put("auth_plugin_params_String", "token:" + token);
+        String delimiter = "/";
+        Map<String, Object> codecMap = new HashMap<>();
+        codecMap.put("delimiter", delimiter);
+        Configuration codecConf = new ConfigurationImpl(codecMap);
+        configValues.put("codec", new Line(codecConf, null));
+    }
+
+
+    // Initialize configuration information
+    public void getKerberosConfiguration() {
+        configValues.put("serviceUrl", serviceUrl);
+        configValues.put("producer_name", "jun_test");
+        configValues.put("topic", topic);
+        configValues.put("enable_batching", true);
+
+        configValues.put("enable_token", false);
+        configValues.put("auth_plugin_class_name", "org.apache.pulsar.client.impl.auth.AuthenticationSasl");
+        configValues.put("enable_kerberos", true);
+        configValues.put("jaas_path",  "/path/pulsar_jaas.conf");
+        configValues.put("krb5_path", "/path/krb5.conf");
+        configValues.put("sasl_jaas_client_section_name", "PulsarClient");
+        configValues.put("server_type", "broker");
         String delimiter = "/";
         Map<String, Object> codecMap = new HashMap<>();
         codecMap.put("delimiter", delimiter);
